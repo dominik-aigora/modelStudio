@@ -195,6 +195,7 @@ modelStudio.explainer <- function(explainer,
                                   telemetry = TRUE,
                                   max_vars = NULL,
                                   verbose = NULL,
+                                  use_fi_order = FALSE,
                                   ...) {
 
   start_time <- Sys.time()
@@ -298,6 +299,11 @@ modelStudio.explainer <- function(explainer,
         loss_function = loss_function
         ),
     "ingredients::feature_importance", show_info, pb, 2*B_fi)
+  
+  if (use_fi_order) {
+    fi_order <- aggregate(fi[, "dropout_loss"], by = list(variable = fi$variable), FUN = mean) 
+    fi_order <- fi_order[order(-fi_order[["x"]]), "variable"]
+  }
 
   which_numerical <- which_variables_are_numeric(data)
 
@@ -381,7 +387,8 @@ modelStudio.explainer <- function(explainer,
 
       bd <- calculate(
         iBreakDown::local_attributions(
-          model, data, predict_function, new_observation, label = label),
+          model, data, predict_function, new_observation, label = label, 
+          order = if (use_fi_order) fi_order else NULL),
         paste0("iBreakDown::local_attributions (", i, ")      "), show_info, pb, 2)
       sv <- calculate(
         iBreakDown::shap(
@@ -421,7 +428,8 @@ modelStudio.explainer <- function(explainer,
 
       bd <- calculate(
         iBreakDown::local_attributions(
-          model, data, predict_function, new_observation, label = label),
+          model, data, predict_function, new_observation, label = label, 
+        order = if (use_fi_order) fi_order else NULL),
         paste0("iBreakDown::local_attributions (", i, ")      "), show_info, pb, 2)
       sv <- calculate(
         iBreakDown::shap(
